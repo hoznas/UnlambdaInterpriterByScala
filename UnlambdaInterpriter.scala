@@ -57,42 +57,35 @@ class Apply(fun: Node, arg: Node) extends UnlambdaObject with Node{
 /////////////////////////////////////////////////////////
 object UnlambdaInterpriter{
   /// tokenizer ///
-  def tokenize(src: String, result: List[String] = Nil): Array[String] = {
-    if(src == "") return result.reverse.toArray
+  def tokenize(src: String, result: List[String] = Nil): List[String] = {
+    if(src == "") return result.reverse
 
     val re_single_char = """^([`skir])(.*)""".r
     val re_dot: Regex = """^(\..)(.*)""".r
 
-    val (inst:String,tail:String) = src match {
-      case re_single_char(x,y) => (x,y)
-      case re_dot(x,y)         => (x,y)
+    src match {
+      case re_single_char(inst,tail) => tokenize(tail,inst::result)
+      case re_dot(inst,tail)         => tokenize(tail,inst::result)
       case _                   => return tokenize(src.tail, result)
     }
-    tokenize(tail, inst::result)
   }
 
-  class TokenReader(val tokens:Array[String], var ptr:Int = -1){
-    def next():String = {
-      ptr += 1
-      tokens(ptr)
-    }
-    def eos():Boolean = (ptr>=tokens.length)
-  }
   /// parse ///
-  def make_node(tr: TokenReader): Node = {
-    if(tr.eos()) throw new Exception("make_node() => EOS")
-    val t = tr.next()
+  def make_node(tokens: List[String]): (Node,List[String]) = {
+    if(tokens == Nil) throw new Exception("make_node() => EOS")
+    val head = tokens.head
     val re_dot: Regex = """^\.(.)""".r
-    val result:Node = t match {
+    head match {
       case "`" => 
-        val fun = make_node(tr)
-        val arg = make_node(tr)
-        new Apply(fun,arg)
-      case "i" | "k" | "s" | "r"=> new SingleArgFunction(t)
-      case re_dot(x) =>  new SingleArgFunction(t)
-      case _   => throw new Exception("make_node() => unknown function[" + t+"]")
+        val (fun,tail1) = make_node(tokens.tail)
+        val (arg,tail2) = make_node(tail1)
+        return (new Apply(fun,arg), tail2)
+      case "i" | "k" | "s" | "r" =>
+        return (new SingleArgFunction(head), tokens.tail)
+      case re_dot(x) =>  
+        return (new SingleArgFunction(head), tokens.tail)
+      case _   => throw new Exception("make_node() => unknown function["+head+"]")
     }
-    return result
   }
 
   /// main ///
@@ -105,7 +98,7 @@ object UnlambdaInterpriter{
     println("[SOURCE] => " + src)
     val tokens = tokenize(src) 
     println("[TOKENS] => " + tokens.mkString(""," ",""))
-    val node = make_node(new TokenReader(tokens))
+    val (node,_) = make_node(tokens)
     println("[NODES] => "+node)
     println("=====eval=====")
     val result = node.eval()
