@@ -1,10 +1,11 @@
-//import scala.util.matching.Regex
+import scala.util.matching.Regex
 
 abstract class UnlambdaObject{
   def toString(): String
 }
 trait Node{
   def eval(): Function
+
 }
 
 class Apply(fun: Node, arg: Node) extends UnlambdaObject with Node{
@@ -15,6 +16,7 @@ class Apply(fun: Node, arg: Node) extends UnlambdaObject with Node{
     ef.call(ea)
   }
 }
+
 
 abstract class Function extends UnlambdaObject with Node{
   def call(arg:Function): Function
@@ -74,12 +76,14 @@ object UnlambdaInterpriter{
   def tokenize(src: String, result: List[String] = Nil): Array[String] = {
     if(src == "") return result.reverse.toArray
 
-    val (inst,tail) = src.head match {
-      case '`' | 's' | 'k' | 'i' | 'r'=>
-        (String.valueOf(src.head), src.tail)
-      case '.' if(src.length >= 2) =>
-        val s = src.substring(0,2)
-        (s, src.substring(2, src.length))
+    val re_single_char = """^([`skir])(.*)""".r
+    val re_dot: Regex = """^(\..)(.*)""".r
+
+    val (inst:String,tail:String) = src match {
+      case re_single_char(x,y) =>
+        (x,y)
+      case re_dot(x,y) =>
+        (x,y)
       case _ =>
         return tokenize(src.tail, result)
     }
@@ -97,7 +101,8 @@ object UnlambdaInterpriter{
   def make_node(tr: TokenReader): Node = {
     if(tr.eos()) throw new Exception("make_node() => EOS")
     val t = tr.next()
-    val result = t.substring(0,1) match {
+    val re_dot: Regex = """^\.(.)""".r
+    val result = t match {
       case "`" => 
         val fun = make_node(tr)
         val arg = make_node(tr)
@@ -106,8 +111,7 @@ object UnlambdaInterpriter{
       case "k" => new K()
       case "s" => new S()
       case "r" => new Dot("\n")
-      case "." if(t.length == 2)=>
-        new Dot(t.substring(1,2))
+      case re_dot(x) =>  new Dot(x)
       case _   => throw new Exception("make_node() => unknown function[" + t+"]")
     }
     return result
