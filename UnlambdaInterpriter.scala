@@ -1,27 +1,18 @@
+/// import ///
 import scala.util.matching.Regex
-
+/// abstract ///
 abstract class UnlambdaObject{
   def toString(): String
 }
-////////////////////////////////////////////////////////
-trait Node{
-  def eval(): Function
-}
-
-class Apply(fun: Node, arg: Node) extends UnlambdaObject with Node{
-  def eval(): Function ={
-    val ef = fun.eval()
-    val ea = arg.eval()
-    ef.call(ea)
-  }
-  override def toString(): String = "(%s %s)".format(fun, arg)
-}
-/////////////////////////////////////////////////////////
+/// traits ///
 trait Function {
   def call(arg:Function): Function
   def eval(): Function = this
 }
-
+trait Node{
+  def eval(): Function
+}
+/// implement of function ///
 class SingleArgFunction(name: String) extends UnlambdaObject with Function with Node {
   def call(arg: Function): Function = {
     val re_dot: Regex = """^\.(.)""".r
@@ -54,8 +45,18 @@ class MultiArgFunction(name:String, x:Function, y:Function) extends UnlambdaObje
   }
   override def toString():String = name
 }
+/// "`" operator ///
+class Apply(fun: Node, arg: Node) extends UnlambdaObject with Node{
+  def eval(): Function ={
+    val ef = fun.eval()
+    val ea = arg.eval()
+    ef.call(ea)
+  }
+  override def toString(): String = "(%s %s)".format(fun, arg)
+}
 /////////////////////////////////////////////////////////
 object UnlambdaInterpriter{
+  /// tokenizer ///
   def tokenize(src: String, result: List[String] = Nil): Array[String] = {
     if(src == "") return result.reverse.toArray
 
@@ -77,7 +78,7 @@ object UnlambdaInterpriter{
     }
     def eos():Boolean = (ptr>=tokens.length)
   }
-
+  /// parse ///
   def make_node(tr: TokenReader): Node = {
     if(tr.eos()) throw new Exception("make_node() => EOS")
     val t = tr.next()
@@ -94,6 +95,8 @@ object UnlambdaInterpriter{
     return result
   }
 
+  /// main ///
+  /// eval(commandline argument) as unlambda code. ///
   def main(args: Array[String]) :Unit = {
     println("[ARGS] => " + args.mkString("[",",","]"))
     val src = if(args.length != 0 ) args(0) 
