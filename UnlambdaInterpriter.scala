@@ -6,14 +6,16 @@ abstract class UnlambdaObject{
 }
 /// traits ///
 trait Function {
+  val name:String
   def call(arg:Function): Function
   def eval(): Function = this
+  override def toString():String = name
 }
 trait Node{
   def eval(): Function
 }
 /// implement of function ///
-class SingleArgFunction(name: String) extends UnlambdaObject with Function with Node {
+class SingleArgFunction(val name: String) extends UnlambdaObject with Function with Node {
   def call(arg: Function): Function = {
     val re_dot: Regex = """^\.(.)""".r
     name match {
@@ -29,9 +31,8 @@ class SingleArgFunction(name: String) extends UnlambdaObject with Function with 
       case _ => throw new Exception("SingleArgFunction("+name+") => ERROR")
     }
   }
-  override def toString():String = name
 }
-class MultiArgFunction(name:String, x:Function, y:Function) extends UnlambdaObject with Function with Node {
+class MultiArgFunction(val name:String, x:Function, y:Function) extends UnlambdaObject with Function with Node {
   def call(arg: Function): Function = {
     name match {
       case "K2" => this.x
@@ -43,7 +44,6 @@ class MultiArgFunction(name:String, x:Function, y:Function) extends UnlambdaObje
       case _ => throw new Exception("MultiArgFunction("+name+") => ERROR")
     }
   }
-  override def toString():String = name
 }
 /// "`" operator ///
 class Apply(fun: Node, arg: Node) extends UnlambdaObject with Node{
